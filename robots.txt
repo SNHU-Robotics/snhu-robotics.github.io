@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://snhu-robotics.github.io/sitemap.xml
+
+
