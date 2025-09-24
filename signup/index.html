@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Signup · SNHU Robotics</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="../static/favicon.ico">
+    <link rel="stylesheet" href="../assets/styles.css">
+    <style>
+        main {
+            padding: 48px 0;
+        }
+
+        form {
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0f1426;
+            color: var(--text);
+        }
+
+        .help {
+            color: var(--muted);
+            font-size: 0.9em;
+        }
+
+        .status {
+            margin-top: 12px;
+            min-height: 22px;
+        }
+
+        .status.error {
+            color: #ffb4b4;
+        }
+
+        .status.success {
+            color: #b4ffcb;
+        }
+
+        .hp {
+            position: absolute;
+            left: -10000px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="brand"><img class="logo-img" src="../static/Logo.png" alt="SNHU Robotics logo" width="40"
+                    height="40"><span class="name">SNHU Robotics</span></div>
+            <nav class="nav" aria-label="Main">
+                <a href="../">Home</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Join SNHU Robotics</h1>
+            <p class="help">Enter your name, SNHU email, and student ID to sign up.</p>
+
+            <form id="signupForm" novalidate>
+                <div class="field">
+                    <label for="name">Full name</label>
+                    <input id="name" name="name" type="text" autocomplete="name" required>
+                </div>
+                <div class="field">
+                    <label for="email">SNHU email</label>
+                    <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+                        placeholder="you@snhu.edu" required>
+                    <div class="help">Must be an @snhu.edu address.</div>
+                </div>
+                <div class="field">
+                    <label for="studentId">Student ID</label>
+                    <input id="studentId" name="studentId" type="text" inputmode="numeric" autocomplete="off" required>
+                </div>
+
+                <div class="hp">
+                    <label for="website">Website</label>
+                    <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+                </div>
+
+                <button class="btn primary" type="submit">Submit</button>
+                <div id="status" class="status" role="status" aria-live="polite"></div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>© <span id="year"></span> SNHU Robotics</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        const form = document.getElementById('signupForm');
+        const statusEl = document.getElementById('status');
+        // Base64-encoded webhook URL (Yeah i know its not secure lol)
+        const webhookB64 = 'aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTQyMDQxMTIzNDc3NTMzOTA0OC9yT0RWZVkzbVl5V1JERnZaQ3QzNzJIZGxmOGEtN1NldDVHM0wwOElXX2RhU0wzN0FRSDhOSXR5bF81NmhGdWt3MmNIaFw/dGhyZWFkX2lkXD0xNDIwNDA4NDIwNjgyNDM2NjA4Cg==';
+        // Decode and clean up any escaped special chars from shell-escaped source
+        const webhookUrl = atob(webhookB64).trim().replace(/\\([?=])/g, '$1');
+
+        function isSnhuEmail(email) {
+            return /@snhu\.edu$/i.test(email.trim());
+        }
+
+        function isValidStudentId(id) {
+            return /^[0-9]{6,10}$/.test(id.trim());
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            statusEl.className = 'status';
+            statusEl.textContent = '';
+
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const studentId = document.getElementById('studentId').value.trim();
+            const honeypot = document.getElementById('website').value.trim();
+
+            if (honeypot) { return; }
+            if (!name) { statusEl.classList.add('error'); statusEl.textContent = 'Please enter your name.'; return; }
+            if (!isSnhuEmail(email)) { statusEl.classList.add('error'); statusEl.textContent = 'Please use your @snhu.edu email.'; return; }
+            if (!isValidStudentId(studentId)) { statusEl.classList.add('error'); statusEl.textContent = 'Please enter a valid student ID (numbers only).'; return; }
+
+            const payload = {
+                username: 'SNHU Robotics Signup',
+                content: `New signup\nName: ${name}\nEmail: ${email}\nStudent ID: ${studentId}`
+            };
+
+            try {
+                const resp = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!resp.ok) {
+                    throw new Error(`Request failed: ${resp.status}`);
+                }
+
+                statusEl.classList.add('success');
+                statusEl.textContent = 'Thanks! Your information has been submitted.';
+                form.reset();
+            } catch (err) {
+                statusEl.classList.add('error');
+                statusEl.textContent = 'Sorry, something went wrong. Please try again later.';
+            }
+        });
+    </script>
+</body>
+
+</html>
